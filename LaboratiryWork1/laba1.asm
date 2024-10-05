@@ -1,4 +1,4 @@
-global _start           ; делаем метку метку _start видимой извне
+global _start
 
 section .data
 a: dq 19
@@ -8,12 +8,11 @@ d: dq 14
 cd: dq 0
 ab: dq 0
 result_sign: db 0
-result: dq 0
-msg db "         ", 0xA
-lenmsg: equ $-msg      ; length of msg
+message db "result =        ", 0xA
+message_length: equ $-message      ; length of message
 
-section .text           ; объявление секции кода
-_start:                 ; объявление метки _start - точки входа в программу
+section .text           ; code section
+_start:                 ; enter point
 
     ;c * d start
     mov rax, [c]
@@ -38,7 +37,6 @@ _start:                 ; объявление метки _start - точки в
 
     add rax, [ab]
     sub rax, [cd]
-    mov [result], rax
 
     test rax, rax
     jns .output
@@ -47,17 +45,17 @@ _start:                 ; объявление метки _start - точки в
     mov [result_sign], dl
     neg rax
 
-    ;Поготовка к выводу
+    ;prepare output
     .output:
-    mov rsi, msg
-    add rsi, lenmsg-2
+    mov rsi, message
+    add rsi, message_length-1
     mov rbx, 10
     .next_digit:
         xor rdx, rdx       ; clear rdx prior to dividing rdx:rax by rbx
         div rbx            ; rax /= 10
         add dl, '0'        ; convert the remainder to ASCII 
         dec rsi            ; store characters in reverse order
-        mov [rsi], dl      ;
+        mov [rsi], dl
         test rax, rax
         jnz .next_digit    ; repeat until
     
@@ -66,17 +64,17 @@ _start:                 ; объявление метки _start - точки в
     jnz .print
 
     dec rsi
-    mov dl, 45 ; 45 is minus
+    mov dl, '-' ; 45 is minus
     mov [rsi], dl
     
     .print:
-    mov rdx, lenmsg      ; length of the string
-    mov rsi, msg         ; address of the string
+    mov rdx, message_length      ; length of the string
+    mov rsi, message         ; address of the string
     mov rdi, 1           ; file descriptor, in this case stdout
     mov rax, 1           ; syscall number for write
     syscall
     
-    ; Завершение программы
+    ; exit
     mov rax, 60 ; sys_exit
-    mov rdi, 0 ; код завершения 0
+    mov rdi, 0 ; code 0
     syscall

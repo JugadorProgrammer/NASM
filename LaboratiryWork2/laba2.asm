@@ -12,15 +12,15 @@ result_sign: db 0
 message db "f(x) =          ", 0xA
 message_legth: equ $-message      ; length of msg
 
-section .text           ; объявление секции кода
-_start:                 ; объявление метки _start - точки входа в программу
+section .text           ; code section
+_start:                 ; enter point
 
     mov rax, [x]
     cmp rax, 0
 
-    jz .y2 ; if x == 0
-    ja .y3 ; if x > 0
-    jmp .y1 ; if x < 0
+    jl .y1 ; if x < 0
+    jg .y3 ; if x > 0
+    jmp .y2 ; if x == 0
 
     .y1:
         ;2·a·x+5 start
@@ -32,13 +32,16 @@ _start:                 ; объявление метки _start - точки в
         imul rdi
         add rax, 5
         ;2·a·x+5 end
-        jmp .print_result
 
+        jmp .print_result
     .y2:
         ;(a-b)/d start
         mov rax, [a]
         sub rax, [b]
 
+        cqo ; для знакового деления
+        mov rdi, [d]
+        idiv rdi
         ;(a-b)/d end
         jmp .print_result
 
@@ -51,6 +54,7 @@ _start:                 ; объявление метки _start - точки в
         mov rdi, [c]
         add rdi, [d]
 
+        cqo ;для знакового деления
         idiv rdi
         ;(a^2-x)/(c+d) end
     .print_result:
