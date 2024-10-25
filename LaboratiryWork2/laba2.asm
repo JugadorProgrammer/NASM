@@ -9,12 +9,11 @@ x: dq -2
 x_delta: dq 1
 x_destination: dq 5
 result_sign: db 0
-message db "f(x) =          ", 0xA
+message db "f(x)=     ", 0xA
 message_legth: equ $-message      ; length of msg
 
 section .text           ; code section
 _start:                 ; enter point
-
     mov rax, [x]
     cmp rax, 0
 
@@ -44,11 +43,10 @@ _start:                 ; enter point
         idiv rdi
         ;(a-b)/d end
         jmp .print_result
-
     .y3:
         ;(a^2-x)/(c+d) start
         mov rax, [a]
-        imul rax
+        imul rax, rax
         sub rax, [x]
 
         mov rdi, [c]
@@ -60,10 +58,12 @@ _start:                 ; enter point
     .print_result:
         ; start print
         test rax, rax
+        mov cl, ' '
         jns .output
 
-        mov dl, 1
-        mov [result_sign], dl
+        ; mov dl, 1
+        ; mov [result_sign], dl
+        mov cl, '-'
         neg rax
 
         ;Поготовка к выводу
@@ -76,19 +76,12 @@ _start:                 ; enter point
             div rbx            ; rax /= 10
             add dl, '0'        ; convert the remainder to ASCII 
             dec rsi            ; store characters in reverse order
-            mov [rsi], dl      ;
+            mov [rsi], dl
             test rax, rax
             jnz .next_digit    ; repeat until
-    
-        mov dl, 1
-        cmp [result_sign], dl
-        jnz .print
 
         dec rsi
-        mov dl, 45 ; 45 is minus
-        mov [rsi], dl
-    
-        .print:
+        mov [rsi], cl
         mov rdx, message_legth      ; length of the string
         mov rsi, message         ; address of the string
         mov rdi, 1           ; file descriptor, in this case stdout
@@ -110,6 +103,6 @@ _start:                 ; enter point
     jmp _start
     .exit:
         ; Завершение программы
-        mov rax, 60 ; sys_exit
         mov rdi, 0 ; код завершения 0
+        mov rax, 60 ; sys_exit
         syscall
