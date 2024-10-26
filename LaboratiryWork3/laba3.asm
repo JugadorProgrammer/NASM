@@ -1,75 +1,69 @@
 global _start ; _start
 
 section .data
-a: dq 29 ;11101
-b: dq 18 ;10010
-c: dq 31 ;11111
-d: dq -14 ;-1110
+a: dw 29 ;11101
+b: dw 18 ;10010
+c: dw 31 ;11111
+d: dw -14 ;-1110
 
 ; (!b + c * a) + d
-result_sign: db 0
-message db "result =          ", 0xA
-message_legth: equ $-message      ; length of msg
+result db '00000000000000000', 0xA  ; Место для хранения битов (64 бита)
+result_legth: equ $-result         ; length of msg
 
 section .text           ; code section
 _start:                 ; enter point
     ; c * a start
-    mov rax, [c]
-    mov rdi, [a]
-    and rax, rdi
+    mov ax, [c]
+    mov di, [a]
+    and ax, di
     ; c * a end
 
+    ; call print_bits
+
     ; (!b + c * a) start
-    mov rdi, [b]
-    not rdi
-    or rax, rdi
+    mov di, [b]
+    not di
+    or ax, di
     ; (!b + c * a) end
 
+    ; call print_bits
+
     ; (!b + c * a) + d start
-    mov rdi, [d]
-    or rax, rdi
+    mov di, [d]
+    or ax, di
     ; (!b + c * a) + d end
     
-    ; start print
-    .prt:
-    test rax, rax
-    jns .output
+    call print_bits
 
-    mov dl, 1
-    mov [result_sign], dl
-    neg rax
-        ;Поготовка к выводу
-    .output:
-        mov rsi, message
-        add rsi, message_legth-1
-        mov rbx, 2
-        .next_digit:
-            xor rdx, rdx       ; clear rdx prior to dividing rdx:rax by rbx
-            div rbx            ; rax /= 2
-            add dl, '0'        ; convert the remainder to ASCII 
-            dec rsi            ; store characters in reverse order
-            mov [rsi], dl      ;
-            test rax, rax
-            jnz .next_digit    ; repeat until
+    ; Завершение программы
+    mov ax, 60 ; sys_exit
+    mov di, 0 ; код завершения 0
+    syscall
 
-        mov dl, 1
-        cmp [result_sign], dl
-        jnz .print
+print_bits:
+    mov cx, 17
+    mov esi, result
 
-        dec rsi
-        mov dl, '-' ;
-        mov [rsi], dl
+    .shift:
+        shl ax, 1
+        jc .set_one
+        
+        mov dl, '0'
+        mov [esi], dl
+        jmp .continue
 
-        .print:
-        mov rdx, message_legth      ; length of the string
-        mov rsi, message         ; address of the string
-        mov rdi, 1           ; file descriptor, in this case stdout
-        mov rax, 1           ; syscall number for write
-        syscall
-        ; end print
+        .set_one:
+            mov dl, '1'
+            mov [esi], dl
 
-    .exit:
-        ; Завершение программы
-        mov rax, 60 ; sys_exit
-        mov rdi, 0 ; код завершения 0
-        syscall
+        .continue:
+            inc esi
+    loop .shift
+
+    mov edx, result_legth ; length of the string
+    mov esi, result       ; address of the string
+    mov edi, 1            ; file descriptor, in this case stdout
+    mov eax, 1            ; syscall number for write
+    syscall
+
+    ret
