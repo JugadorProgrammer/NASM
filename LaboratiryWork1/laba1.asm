@@ -17,7 +17,7 @@ _start:                 ; enter point
     ;c * d start
     mov rax, [c]
     mov rdi, [d]
-    mul rdi
+    imul rdi
     mov [cd], rax
     ;c * d end
 
@@ -64,7 +64,7 @@ _start:                 ; enter point
     jnz .print
 
     dec rsi
-    mov dl, '-' ; 45 is minus
+    mov dl, '-' ;  minus
     mov [rsi], dl
     
     .print:

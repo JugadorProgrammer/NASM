@@ -1,20 +1,21 @@
 global _start
 
 section .data
-first_array dw 40, 39, 38, 37, 36, 5, 34, 32, 31, 30
-second_array dw  20, 20, 20, 20, 20, 20, 20, 20, 20, 20
+first_array dw -40, -39, -38, -37, -36, -35, -34, -32, -31, 30
+second_array dw  20, 21, 22 ,23, 24, 25, 26, 27, 28, 29
 result_array  dw 10 dup(0)
 
 array_lenght: db 10
 result_sign: db 0
 
-message1 db "first  -            ;", 0xA
+msg db " ",  0
+space db " ",  0
+
+message1 db "first  array: ", 0
 message_length: equ $-message1      ; length of msg
-free_space_in_message: equ 10
 
-message2 db "second -            ;", 0xA
-message3 db "result -            ;", 0xA
-
+message2 db "second array: ", 0
+message3 db "result array: ", 0
 void_row db "", 0xA
 
 section .text           ; code section
@@ -40,16 +41,26 @@ _start:                 ; enter point
 
     mov [array_lenght], r8b ; restore length
 
+    mov esi, message1
+    mov edx, message_length
+    call print_
+
     mov r9d, first_array
     mov esi, message1
     call print_all
 
-    call print_void_row
+    mov esi, message2
+    mov edx, message_length
+    call print_
+
     mov r9d, second_array
     mov rsi, message2
     call print_all
 
-    call print_void_row
+    mov esi, message3
+    mov edx, message_length
+    call print_
+
     mov r9d, result_array
     mov rsi, message3
     call print_all
@@ -67,17 +78,19 @@ print_all:
         movsx eax, word [r9d + r8d * 2]
         
         mov r10d ,ecx ; save ecx
-        call print
+
+        call print_element
         mov ecx, r10d ; restore ecx
 
         mov dl, 0
         mov [result_sign], dl
         inc r8d
-
     loop print_loop
+
+    call print_void_row
     ret
 
-print:
+print_element:
     test eax, eax
     jns .output
 
@@ -86,17 +99,16 @@ print:
     neg eax
 
     .output:
-        mov r11d, message_length - 2
-        add esi, message_length - 2
-
+        mov ecx, 0 
         mov ebx, 10
         .next_digit:
             xor edx, edx       ; clear rdx prior to dividing edx:eax by ebx
             div ebx            ; eax /= 10
             add dl, '0'        ; convert the remainder to ASCII 
-            dec esi            ; store characters in reverse order
-            mov [esi], dl
-            dec r11d
+            movsx r12, byte dl
+            push r12
+            
+            inc ecx
             test eax, eax
         jnz .next_digit    ; repeat until
 
@@ -104,34 +116,39 @@ print:
         cmp [result_sign], dl
         jnz .write
 
-        dec esi
-        dec r11d
         mov dl, '-' ; minus
-        mov [esi], dl
+        movsx r12, byte dl
+        push r12
+        inc ecx
         
         .write:
-            mov edx, message_length      ; length of the string
-            sub esi, r11d         ; restore address of the string
+            mov esi, msg
+            pop rdx
+            mov [esi], dl
+            mov ebx, ecx; save
+
+            mov edx, 2      ; length of the string
+            mov esi, msg
             mov edi, 1           ; file descriptor, in this case stdout
             mov eax, 1           ; syscall number for write
             syscall
-        ;call clearr11d_message
-    ret
 
-clear_message:
-    mov ecx, free_space_in_message
-    add esi, message_length - 2 
-    xor edx, edx
-    mov dl, ' '
-    clear_loop:
-        mov [esi], dl
-        dec esi
-        loop clear_loop
+            mov ecx, ebx;restore
+        loop .write
+
+        ; принт space
+        mov edx, 2      ; length of the string
+        mov esi, space
+        call print_
     ret
 
 print_void_row:
-    mov edx, 1      ; length of the string
+    mov edx, 1     ; length of the string
     mov esi, void_row
+    call print_
+    ret
+
+print_:
     mov edi, 1           ; file descriptor, in this case stdout
     mov eax, 1           ; syscall number for write
     syscall

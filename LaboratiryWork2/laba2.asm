@@ -92,7 +92,7 @@ _start:                 ; enter point
     mov rax, [x]
     mov rdi, [x_destination]
     cmp rax, rdi
-    jz .exit ; if x == x_destination
+    jz .exit ; if x == x_destination 
 
     ; x+=delta_x start
     mov rax, [x_delta]
