@@ -4,65 +4,82 @@ global _start
 ; Определить количество цифр в нем и их сумму. 
 ; Вывести на экран число, количество цифр и сумму
 section .data
-  sum dq 0
+  length: dq 0
+  sum: dq 0
+  rcx_sum: dq 0
+
+  sum_message db    "sum:             ", 0
+  length_message db "count of digits: ", 0
+  msg_len: equ $-length_message
 
   digit db " ", 0
-
   void_row db " ", 0xA
   len: equ $-void_row
 
 section .bss
-  buffer resb 256      ; Резервируем 256 байт для строки
+  buffer resb 1      ; Резервируем 1 байт для строки
 
 section .text
 _start:
   mov rax, 0        ; sys_read
   mov rdi, 0        ; файл stdin
   mov rsi, buffer ; указатель на буфер, где сохраняем символ
-  mov rdx, 256        ; считываем 256 байт
+  mov rdx, 4096        ; считываем 4096 байт - максимальное кол-во символов
   syscall
 
-  mov rcx, buffer     ; указываем на начало буфера
+  mov rsi, buffer     ; указываем на начало буфера
   xor rdi, rdi        ; обнуляем счетчик длины
-  mov rax, 0
+  xor rax, rax
   
   .count_length:
-    cmp byte [rcx + rdi], 10 ; проверяем, не конец ли строки (символ 'n')
+    xor rdx, rdx
+    mov rdx, [rsi + rdi]
+    cmp rdx, 0xA ; проверяем, не конец ли строки (символ 'n')
     je .done_counting         ; если да, выходим из цикла
-    mov rdx, [rcx + rdi]
-    sub rdx, '0'
-    add rax, rdx
+    
+    sub dl, '0'
+    movsx rcx, byte dl
+    add rax, rcx
 
     inc rdi                   ; увеличиваем счетчик
     jmp .count_length          ; продолжаем считать
 
 .done_counting:
+  mov [length], rdi
   mov [sum], rax
-  mov rax, rdi
-  call print
 
-  mov rdx, len
-  mov rsi, void_row
-  mov rdi, 1           ; file descriptor, in this case stdout
-  mov rax, 1           ; syscall number for write
-  syscall
+  ; Print sum
+  mov rdx, msg_len
+  mov rsi, sum_message
+  call print_rsi
 
   mov rax, [sum]
   call print
 
   mov rdx, len
   mov rsi, void_row
-  mov rdi, 1           ; file descriptor, in this case stdout
-  mov rax, 1           ; syscall number for write
-  syscall
+  call print_rsi
+
+  ; Print length
+  mov rdx, msg_len
+  mov rsi, length_message
+  call print_rsi
+
+  mov rax, [length]
+  call print
+
+  mov rdx, len
+  mov rsi, void_row
+  call print_rsi
 
   mov rax, 60 ; sys_exit
   mov rdi, 0  ; код завершения 0
   syscall
 
 print:
-      mov rcx, 0
+      mov r9, 0
       mov rbx, 10
+      
       .next_digit:
         xor rdx, rdx       ; clear rdx prior to dividing edx:eax by ebx
         div rbx            ; rax /= 10
@@ -72,23 +89,26 @@ print:
         movsx r8, byte dl
         push r8
 
-        add rcx, 1
+        add r9, 1
         cmp rax, 0
-      jne .next_digit    ; repeat until        
+      jne .next_digit    ; repeat until    
 
+      mov rsi, digit
       .write:
         xor rdx, rdx
         pop rdx
+
         mov [rsi], dl
-        mov r8, rcx; save
-
         mov rdx, 1      ; length of the string
-        mov rdi, 1           ; file descriptor, in this case stdout
-        mov rax, 1           ; syscall number for write
-        syscall
+        call print_rsi
 
-        mov rcx, r8 ;restore
-        dec rcx
-        test rcx, rcx
+        dec r9
+        test r9, r9
       jnz .write
+  ret
+
+print_rsi:
+  mov rdi, 1           ; file descriptor, in this case stdout
+  mov rax, 1           ; syscall number for write
+  syscall
   ret
