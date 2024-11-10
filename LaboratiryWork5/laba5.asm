@@ -4,9 +4,11 @@ global _start
 ; Определить количество цифр в нем и их сумму. 
 ; Вывести на экран число, количество цифр и сумму
 section .data
-  length: dq 0
-  sum: dq 0
-  rcx_sum: dq 0
+  length: dq 0 ; длина числа
+  sum: dq 0 ; сумма цифр в числе
+
+  erorr_message db  "Sum of the digits exceeds 2^64", 0xA
+  erorr_length: equ $-erorr_message
 
   sum_message db    "sum:             ", 0
   length_message db "count of digits: ", 0
@@ -32,19 +34,23 @@ _start:
   xor rax, rax
   
   .count_length:
-    xor rdx, rdx
+    ; xor rdx, rdx
     mov rdx, [rsi + rdi]
     cmp rdx, 0xA ; проверяем, не конец ли строки (символ 'n')
     je .done_counting         ; если да, выходим из цикла
     
+    inc rdi ; увеличиваем длину
+
     sub dl, '0'
     movsx rcx, byte dl
     add rax, rcx
+    jnc .count_length ; продолжаем считать
 
-    inc rdi                   ; увеличиваем счетчик
-    jmp .count_length          ; продолжаем считать
+    call print_eror   ; увеличиваем счетчик
+    jmp .exit
 
 .done_counting:
+  ;сохраняем переменные
   mov [length], rdi
   mov [sum], rax
 
@@ -72,6 +78,7 @@ _start:
   mov rsi, void_row
   call print_rsi
 
+.exit:
   mov rax, 60 ; sys_exit
   mov rdi, 0  ; код завершения 0
   syscall
@@ -112,3 +119,8 @@ print_rsi:
   mov rax, 1           ; syscall number for write
   syscall
   ret
+
+print_eror:
+  mov rdx, erorr_length
+  mov rsi, erorr_message
+  call print_rsi
